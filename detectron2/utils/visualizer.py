@@ -402,11 +402,10 @@ class Visualizer:
             thresh = thresh*255
             threshs.append(thresh)
         
-        print(classes)
         result_thresh = []
         result_boxsize = []
         result_boxcrop = []
-        isFind = True
+        isfind = True
 
         if classes is not None:
             for i in range(len(classes)):
@@ -421,17 +420,21 @@ class Visualizer:
             image = cv2.bitwise_not(image)
             image = cv2.bitwise_and(image, cv2.cvtColor(result_thresh[largest_thresh], cv2.COLOR_GRAY2RGB))
             image = cv2.bitwise_not(image)
-            """
             if isCrop:
-                x,x_ = result_boxcrop[largest_thresh][0][0],result_boxcrop[largest_thresh][1][0]
-                y,y_ = result_boxcrop[largest_thresh][0][1],result_boxcrop[largest_thresh][1][1]
-                image = image[y:y_, x:x_]
-                """
+                x,x_ = result_boxcrop[largest_thresh].tensor.numpy()[0][0],result_boxcrop[largest_thresh].tensor.numpy()[0][2]
+                y,y_ = result_boxcrop[largest_thresh].tensor.numpy()[0][1],result_boxcrop[largest_thresh].tensor.numpy()[0][3]
+                x = math.floor(x)
+                y = math.floor(y)
+                x_ = math.ceil(x_)
+                y_ = math.ceil(y_)
+
+                image = image[y:y_, x:x_, :]
+      
         except:
             print("Find nothing! Return original image!")
-            is_find = False
+            isfind = False
 
-        return VisImage(image)
+        return VisImage(image), isfind
 
 #####################################################################################################
 
