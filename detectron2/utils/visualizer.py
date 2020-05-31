@@ -376,6 +376,65 @@ class Visualizer:
         )
         return self.output
 
+#####################################################################################################
+
+    def draw_instance_predictions_crop(self, predictions, category1, category2, isCrop=False):
+
+        boxes = predictions.pred_boxes if predictions.has("pred_boxes") else None
+        scores = predictions.scores if predictions.has("scores") else None
+        classes = predictions.pred_classes if predictions.has("pred_classes") else None
+        labels = _create_text_labels(classes, scores, self.metadata.get("thing_classes", None))
+
+        if predictions.has("pred_masks"):
+            masks = np.asarray(predictions.pred_masks)
+        else:
+            masks = None
+
+        boxsizes = []
+        if boxes is not None:
+            for box in boxes:
+                top_left, bottom_right = box[:2].tolist(), box[2:].tolist()
+                boxsizes.append((bottom_right[0]-top_left[0])*(bottom_right[1]-top_left[1]))
+
+        threshs = []
+        for mask in masks:
+            thresh = mask[:, :].astype(np.uint8)
+            thresh = thresh*255
+            threshs.append(thresh)
+        
+        print(classes)
+        result_thresh = []
+        result_boxsize = []
+        result_boxcrop = []
+        isFind = True
+
+        if classes is not None:
+            for i in range(len(classes)):
+                if classes[i] == category1 or classes[i] == category2:
+                    result_thresh.append(threshs[i])
+                    result_boxsize.append(boxsizes[i])
+                    result_boxcrop.append(boxes[i])
+
+        try:
+            image = self.img.copy()
+            largest_thresh = np.argmax(np.array(result_boxsize))
+            image = cv2.bitwise_not(image)
+            image = cv2.bitwise_and(image, cv2.cvtColor(result_thresh[largest_thresh], cv2.COLOR_GRAY2RGB))
+            image = cv2.bitwise_not(image)
+            """
+            if isCrop:
+                x,x_ = result_boxcrop[largest_thresh][0][0],result_boxcrop[largest_thresh][1][0]
+                y,y_ = result_boxcrop[largest_thresh][0][1],result_boxcrop[largest_thresh][1][1]
+                image = image[y:y_, x:x_]
+                """
+        except:
+            print("Find nothing! Return original image!")
+            is_find = False
+
+        return VisImage(image)
+
+#####################################################################################################
+
     def draw_sem_seg(self, sem_seg, area_threshold=None, alpha=0.8):
         """
         Draw semantic segmentation predictions/labels.
